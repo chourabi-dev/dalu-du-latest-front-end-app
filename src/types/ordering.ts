@@ -13,8 +13,7 @@ export interface Restaurant {
   isOpen?: boolean;
   openingHours?: string;
   deliveryAvailable?: boolean;
-
-
+  pickupAvailable?: boolean;
 }
 
 
@@ -45,6 +44,7 @@ export type ExtraGroupSelectionType = "single" | "multiple";
 export interface ExtraOption {
   id: string;
   name: string;
+  photo: string;
   price: number; // additive price, 0 for free options
   isDefault?: boolean;
 }

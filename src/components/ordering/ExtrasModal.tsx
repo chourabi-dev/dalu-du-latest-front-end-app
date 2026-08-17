@@ -205,6 +205,7 @@ const ExtrasModal = ({ product, open, onOpenChange }: ExtrasModalProps) => {
                             isChecked && "border-primary bg-primary/5"
                           )}
                         >
+                          <img src={option.photo} width={80} alt="" />
                           <span className="flex items-center gap-2">
                             <Checkbox
                               id={`${group.id}-${option.id}`}

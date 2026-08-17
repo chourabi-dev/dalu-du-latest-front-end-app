@@ -17,11 +17,12 @@ const queryClient = new QueryClient();
 
 // Configure in .env as VITE_GOOGLE_CLIENT_ID. Google sign-in is skipped
 // gracefully if this isn't set.
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+const GOOGLE_CLIENT_ID = '929251337249-ag6l7kmneg094tb1c8a5npljh81rv3v9.apps.googleusercontent.com';
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId ={GOOGLE_CLIENT_ID}>
       <LanguageProvider>
         <AuthProvider>
           <TooltipProvider>

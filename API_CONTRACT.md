@@ -24,10 +24,16 @@ List every restaurant the owner runs, shown in the location-picker modal.
     "phone": "+216 20 000 000",
     "image": "https://.../marsa.jpg",
     "isOpen": true,
-    "openingHours": "Tue-Sun: 12:00 - 22:00"
+    "openingHours": "Tue-Sun: 12:00 - 22:00",
+    "deliveryAvailable": true,
+    "pickupAvailable": true
   }
 ]
 ```
+
+- `deliveryAvailable` / `pickupAvailable` (both optional, default `false` if omitted)
+  drive which fulfillment options the checkout screen offers for this restaurant.
+  Dine-in is always offered. If both are `false`, only dine-in is shown.
 
 ### `GET /api/restaurants/:id`
 Single restaurant, same shape as above.
@@ -146,6 +152,7 @@ Request:
 ```json
 {
   "restaurantId": "rest_1",
+  "fulfillmentType": "delivery",
   "paymentMethod": "cash",
   "deliveryAddress": "12 Rue de Marseille, Tunis",
   "phone": "+216 20 000 000",
@@ -161,9 +168,15 @@ Request:
 }
 ```
 
-`paymentMethod` is `"cash"` for now (cash on delivery). `"online"` is reserved for a
-future payment-gateway integration — the checkout UI already disables it with a
-"Coming soon" label.
+`fulfillmentType` is one of `"dine_in"`, `"delivery"`, `"pickup"` — set by the checkout
+screen based on what the customer picked (and constrained by the restaurant's
+`deliveryAvailable` / `pickupAvailable` flags). `deliveryAddress` is only present for
+`"delivery"`; `pickupTime` (either a specific time or `"asap"`) is only present for
+`"pickup"`.
+
+`paymentMethod` is `"cash"` or `"online"`. `"online"` is only sent after a PayPal
+capture has already succeeded, so an order with `paymentMethod: "online"` is
+guaranteed to be paid for.
 
 Response:
 ```json

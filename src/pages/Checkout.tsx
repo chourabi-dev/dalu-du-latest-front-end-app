@@ -9,7 +9,6 @@ import {
   Store,
   UtensilsCrossed,
   ChevronLeft,
-  Clock,
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { Button } from "@/components/ui/button";
@@ -26,17 +25,16 @@ import { cn } from "@/lib/utils";
 import type { FulfillmentType, OrderPayload, PaymentMethod } from "@/types/ordering";
 import type { OrderSuccessState } from "@/pages/OrderSuccess";
 
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID as string | undefined;
+const PAYPAL_CLIENT_ID = "AYo1Z25jymTATBBlAw0QU5ahmF0_xaPaUjbU2ehPmitwMsZXdof57ZU2qSxDOV6iwpOWmRBUsnKIl8IH"
 
 // The checkout is a small wizard:
-//  1. "location"        — are you already at the restaurant?
-//       yes -> fulfillment = dine_in, go straight to the form
-//       no  -> restaurant delivers?  yes -> "delivery-choice"   no -> fulfillment = pickup, form
-//  2. "delivery-choice"  — (only shown when the restaurant delivers) do you want delivery?
-//       yes -> fulfillment = delivery, form
-//       no  -> fulfillment = pickup, form
-//  3. "form"             — fields + payment method for whichever fulfillment was picked
-type Step = "location" | "delivery-choice" | "form";
+//  1. "location" — a single screen listing every fulfillment option the
+//     restaurant actually supports: dine-in is always offered, delivery only
+//     shows up when the restaurant's deliveryAvailable is true, and pickup
+//     only shows up when pickupAvailable is true. Picking one sets
+//     fulfillmentType and moves straight to the form.
+//  2. "form"     — fields + payment method for whichever fulfillment was picked
+type Step = "location" | "form";
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -45,6 +43,7 @@ const Checkout = () => {
   const { selectedRestaurantId, selectedRestaurant } = useRestaurant();
 
   const restaurantDelivers = !!selectedRestaurant?.deliveryAvailable;
+  const restaurantOffersPickup = !!selectedRestaurant?.pickupAvailable;
 
   const [step, setStep] = useState<Step>("location");
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType | null>(null);
@@ -67,36 +66,15 @@ const Checkout = () => {
     }
   }, [items.length, navigate]);
 
-  const chooseDineIn = () => {
-    setFulfillmentType("dine_in");
-    setStep("form");
-  };
-
-  const chooseNotAtRestaurant = () => {
-    if (restaurantDelivers) {
-      setStep("delivery-choice");
-    } else {
-      setFulfillmentType("pickup");
-      setStep("form");
-    }
-  };
-
-  const chooseDelivery = () => {
-    setFulfillmentType("delivery");
-    setStep("form");
-  };
-
-  const choosePickup = () => {
-    setFulfillmentType("pickup");
+  const selectFulfillment = (type: FulfillmentType) => {
+    setFulfillmentType(type);
     setStep("form");
   };
 
   const goBack = () => {
     if (step === "form") {
-      setStep(restaurantDelivers && fulfillmentType !== "dine_in" ? "delivery-choice" : "location");
-      setFulfillmentType(null);
-    } else if (step === "delivery-choice") {
       setStep("location");
+      setFulfillmentType(null);
     }
   };
 
@@ -198,65 +176,44 @@ const Checkout = () => {
           </div>
         ) : (
           <>
-            {/* Step 1: are you at the restaurant? */}
+            {/* Step 1: how would you like to receive your order? Dine-in is
+                always offered; delivery/pickup only show up when the
+                restaurant actually supports them. */}
             {step === "location" && (
               <div className="space-y-4">
-                <h2 className="font-serif text-xl text-foreground">Are you at the restaurant right now?</h2>
+                <h2 className="font-serif text-xl text-foreground">How would you like your order?</h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <button
                     type="button"
-                    onClick={chooseDineIn}
+                    onClick={() => selectFulfillment("dine_in")}
                     className="flex flex-col items-center gap-2 rounded-xl border border-border p-6 text-center transition-smooth hover:border-primary/50 hover:bg-primary/5"
                   >
                     <UtensilsCrossed className="h-6 w-6 text-primary" />
-                    <span className="font-medium text-foreground">Yes, I'm seated here</span>
+                    <span className="font-medium text-foreground">I'm at the restaurant</span>
                     <span className="text-xs text-muted-foreground">Order straight to your table</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={chooseNotAtRestaurant}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-border p-6 text-center transition-smooth hover:border-primary/50 hover:bg-primary/5"
-                  >
-                    <Store className="h-6 w-6 text-primary" />
-                    <span className="font-medium text-foreground">No, I'm elsewhere</span>
-                    <span className="text-xs text-muted-foreground">
-                      {restaurantDelivers ? "Delivery or pickup" : "Pickup"}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2 (only if the restaurant delivers): delivery or pickup? */}
-            {step === "delivery-choice" && (
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  onClick={goBack}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <ChevronLeft className="h-4 w-4" /> Back
-                </button>
-                <h2 className="font-serif text-xl text-foreground">Would you like it delivered?</h2>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={chooseDelivery}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-border p-6 text-center transition-smooth hover:border-primary/50 hover:bg-primary/5"
-                  >
-                    <Truck className="h-6 w-6 text-primary" />
-                    <span className="font-medium text-foreground">Yes, deliver it</span>
-                    <span className="text-xs text-muted-foreground">To my address</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={choosePickup}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-border p-6 text-center transition-smooth hover:border-primary/50 hover:bg-primary/5"
-                  >
-                    <Clock className="h-6 w-6 text-primary" />
-                    <span className="font-medium text-foreground">No, I'll pick it up</span>
-                    <span className="text-xs text-muted-foreground">Choose a time</span>
-                  </button>
+                  {restaurantDelivers && (
+                    <button
+                      type="button"
+                      onClick={() => selectFulfillment("delivery")}
+                      className="flex flex-col items-center gap-2 rounded-xl border border-border p-6 text-center transition-smooth hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <Truck className="h-6 w-6 text-primary" />
+                      <span className="font-medium text-foreground">Delivery</span>
+                      <span className="text-xs text-muted-foreground">To my address</span>
+                    </button>
+                  )}
+                  {restaurantOffersPickup && (
+                    <button
+                      type="button"
+                      onClick={() => selectFulfillment("pickup")}
+                      className="flex flex-col items-center gap-2 rounded-xl border border-border p-6 text-center transition-smooth hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <Store className="h-6 w-6 text-primary" />
+                      <span className="font-medium text-foreground">Pickup</span>
+                      <span className="text-xs text-muted-foreground">Choose a time, grab it yourself</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -469,14 +426,23 @@ const Checkout = () => {
                         createOrder={async () => {
                           setError(null);
                           const ref = await paymentsApi.createPaypalOrder(selectedRestaurantId!, subtotal);
-                          return ref.id;
+
+                          
+                          return ref.orderID;
                         }}
                         onApprove={async (data) => {
+                          
+                          
                           const capture = await paymentsApi.capturePaypalOrder(data.orderID);
-                          if (capture.status !== "COMPLETED") {
+
+                          console.log(capture);
+                          
+
+                          if (capture.paypal.status !== "COMPLETED") {
                             setError("Payment wasn't completed. Please try again.");
                             return;
                           }
+                          
                           await handlePaypalCaptured(data.orderID);
                         }}
                         onError={() => setError("PayPal ran into a problem. Please try again.")}

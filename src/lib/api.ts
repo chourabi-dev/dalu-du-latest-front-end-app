@@ -128,25 +128,17 @@ export const ordersApi = {
     }),
 };
 
-// ---------------------------------------------------------------------------
-// Payments — PayPal (cards, PayPal wallet, and SEPA-linked accounts all flow
-// through PayPal's own checkout, which is enough to cover a European
-// online-payment method for a restaurant based in Germany).
-//
-// Flow: the PayPal JS SDK calls `createOrder` to get a PayPal order id, the
-// customer approves it in the PayPal popup, then `captureOrder` is called to
-// actually take the money. Only after a successful capture do we call
-// `ordersApi.create` with paymentMethod "online" so the kitchen only ever
-// sees orders that are already paid for.
-// ---------------------------------------------------------------------------
 
 export interface PaypalOrderRef {
-  id: string; // PayPal order id
+  success: boolean;
+  orderID: string;
+  status?: string;
 }
 
 export interface PaypalCaptureResult {
-  status: "COMPLETED" | "PENDING" | "FAILED";
-  captureId: string;
+  paypal: any;
+  success: boolean;
+  
 }
 
 export const paymentsApi = {
